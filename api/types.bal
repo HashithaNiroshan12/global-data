@@ -217,6 +217,7 @@ public type Evaluation record {|
     string? response;
     string? notes;
     int? grade;
+    string? created;
     int[] child_evaluations?;
     int[] parent_evaluations?;
 |};

@@ -112,13 +112,12 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
             WHERE jwt_sub_id = ${id};`
         );
 
-        if(personJwtId is Person){
-            return new((),0,personJwtId);
+        if (personJwtId is Person) {
+            return new ((), 0, personJwtId);
         }
         return error("Unable to find person by jwt id");
     }
-        
-    
+
     isolated resource function get prospect(string? email, int? phone) returns ProspectData|error? {
         return new (email, phone);
     }
@@ -152,7 +151,7 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
 
         check from Activity pctiActivity in pctiActivities
             do {
-                ActivityData|error pctiActivityData = new ActivityData((),(), pctiActivity);
+                ActivityData|error pctiActivityData = new ActivityData((), (), pctiActivity);
                 if !(pctiActivityData is error) {
                     pctiActivityDatas.push(pctiActivityData);
                 }
@@ -161,7 +160,7 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
         check pctiActivities.close();
         return pctiActivityDatas;
     }
-    
+
     // will return notes of a PCTI instance
     isolated resource function get pcti_instance_notes(int pcti_instance_id) returns EvaluationData[]|error? {
         stream<Evaluation, error?> pctiNotes;
@@ -356,7 +355,6 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
         return pctiActivityInstancesTodayData;
     }
 
-
     isolated resource function get activity_instances_future(int activity_id) returns ActivityInstanceData[]|error? {
         stream<ActivityInstance, error?> activityInstancesFuture;
         lock {
@@ -415,7 +413,7 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
         return availableTeachersData;
     }
 
-    isolated resource function get project_tasks(int activity_id) returns ActivityData[]|error?{
+    isolated resource function get project_tasks(int activity_id) returns ActivityData[]|error? {
         stream<Activity, error?> projectTasks;
         lock {
             projectTasks = db_client->query(
@@ -441,8 +439,6 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
         check projectTasks.close();
         return projectTasksData;
     }
-
-
 
     isolated resource function get student_applicant(string? jwt_sub_id) returns PersonData|error? {
         AvinyaType avinya_type_raw = check db_client->queryRow(
@@ -824,42 +820,65 @@ service graphql:Service /graphql on new graphql:Listener(4000) {
 
     }
 
-    isolated resource function get evaluationCriteria(string? prompt, int? id) returns EvaluationCriteriaData|error {
+    isolated resource function get evaluationCriteria(string prompt, int id) returns EvaluationCriteriaData|error? {
         return new (prompt, id);
     }
 
-    remote function add_evaluation_criteria(EvaluationCriteria evaluationCriteria) returns EvaluationCriteriaData|error? {
-        EvaluationCriteria|error? criteriaRaw = db_client->queryRow(
-            `SELECT *
-            FROM evaluation_criteria
-            WHERE (prompt = ${evaluationCriteria.prompt} AND
-            id = ${evaluationCriteria.id});`
-        );
-        if (criteriaRaw is EvaluationCriteria) {
-            return error("Evaluation criteria already exists. The prompt and is  you are using is already used by another criteria");
+    // remote function add_evaluation_criteria(EvaluationCriteria evaluationCriteria) returns EvaluationCriteriaData|error? {
+    //     EvaluationCriteria|error? criteriaRaw = db_client->queryRow(
+    //         `SELECT *
+    //         FROM evaluation_criteria
+    //         WHERE (prompt = ${evaluationCriteria.prompt} AND
+    //         id = ${evaluationCriteria.id});`
+    //     );
+    //     if (criteriaRaw is EvaluationCriteria) {
+    //         return error("Evaluation criteria already exists. The prompt and is  you are using is already used by another criteria");
+    //     }
+
+    //     sql:ExecutionResult res = check db_client->execute(
+    //         `INSERT INTO  evaluation_criteria(
+    //             prompt,
+    //             description,
+    //             expected_answer,
+    //             rating_out_of
+    //             ) VALUES(
+    //                 ${evaluationCriteria.prompt},
+    //                 ${evaluationCriteria.description},
+    //                 ${evaluationCriteria.expected_answer},
+    //                 ${evaluationCriteria.rating_out_of}
+    //                 );`
+    //     );
+
+    //     int|string? insert_id = res.lastInsertId;
+    //     if !(insert_id is int) {
+    //         return error("Unable to insert evaluation criteria");
+    //     }
+
+    //     return new (evaluationCriteria.prompt);
+
+    // }
+    resource function get all_evaluation_criterias() returns EvaluationCriteriaData[]|error {
+        stream<EvaluationCriteria, error?> evaluation_criterias;
+        lock {
+            evaluation_criterias = db_client->query(
+                `SELECT *
+                FROM avinya_db.evaluation_criteria 
+                `
+            );
         }
 
-        sql:ExecutionResult res = check db_client->execute(
-            `INSERT INTO  evaluation_criteria(
-                prompt,
-                description,
-                expected_answer,
-                rating_out_of
-                ) VALUES(
-                    ${evaluationCriteria.prompt},
-                    ${evaluationCriteria.description},
-                    ${evaluationCriteria.expected_answer},
-                    ${evaluationCriteria.rating_out_of}
-                    );`
-        );
+        EvaluationCriteriaData[] evaluation_criteria_Datas = [];
 
-        int|string? insert_id = res.lastInsertId;
-        if !(insert_id is int) {
-            return error("Unable to insert evaluation criteria");
-        }
+        check from EvaluationCriteria evaluation_criteria in evaluation_criterias
+            do {
+                EvaluationCriteriaData|error evaluation_criteria_Data = new EvaluationCriteriaData("", 0, evaluation_criteria);
+                if !(evaluation_criteria_Data is error) {
+                    evaluation_criteria_Datas.push(evaluation_criteria_Data);
+                }
+            };
 
-        return new (evaluationCriteria.prompt);
-
+        check evaluation_criterias.close();
+        return evaluation_criteria_Datas;
     }
 
     remote function add_evaluation_answer_option(EvaluationCriteriaAnswerOption evaluationAnswer) returns EvaluationCriteriaAnswerOptionData|error? {
