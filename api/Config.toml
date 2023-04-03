@@ -1,4 +1,4 @@
-DATABASE="avinya_db_1"
+DATABASE="avinya_db_3"
 HOST="localhost"
 PASSWORD="root"
 PORT=3333

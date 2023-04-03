@@ -1,5 +1,5 @@
 public isolated service class EvaluationData {
-    private Evaluation evaluation = {id: 0, evaluatee_id: 0, evaluator_id: 0, evaluation_criteria_id: 0, activity_instance_id: 0, response: (), grade: 0, notes: (), updated: (),created:()};
+    private Evaluation evaluation = {id: 0, evaluatee_id: 0, evaluator_id: 0, evaluation_criteria_id: 0, activity_instance_id: 0, response: (), grade: 0, notes: (), updated: (), created: ()};
 
     isolated function init(int? evaluation_id = 0, Evaluation? evaluation = null) returns error? {
         if (evaluation != null) { // if evaluation is provided, then use that and do not load from DB
@@ -76,6 +76,33 @@ public isolated service class EvaluationData {
         lock {
             return self.evaluation.created;
         }
+    }
+
+    
+
+    //write isolated resource function to get evaluation_criteria data
+    isolated resource function get evaluation_crtierias() returns EvaluationCriteriaData[]|error? {
+        
+        stream<EvaluationCriteria, error?> evaluation_criterias;
+        lock {
+            evaluation_criterias = db_client->query(
+                `SELECT *
+                FROM evaluation_criteria
+                WHERE id= ${self.evaluation.evaluation_criteria_id} `
+            );
+        }
+
+        EvaluationCriteriaData[] evaluationCriteriaDatas = [];
+
+        check from EvaluationCriteria evaluationCriteria in evaluation_criterias
+            do {
+                EvaluationCriteriaData|error evaluationCriteriaData = new EvaluationCriteriaData((), (), evaluationCriteria);
+                if !(evaluationCriteriaData is error) {
+                    evaluationCriteriaDatas.push(evaluationCriteriaData);
+                }
+            };
+        check evaluation_criterias.close();
+        return evaluationCriteriaDatas;
     }
 
     isolated resource function get child_evaluations() returns EvaluationData[]|error? {
